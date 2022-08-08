@@ -1,8 +1,10 @@
 ﻿import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:yaml/yaml.dart';
 import 'package:dart_casing/dart_casing.dart';
 import 'package:dart_style/dart_style.dart';
 import 'package:dart_utils/dart_utils.dart';
@@ -15,13 +17,21 @@ import 'package:source_gen/source_gen.dart';
 
 class FlutterTranslateGen extends AnnotationGenerator<TranslateKeysOptions>
 {
+    String prefix;
     static List<String> reservedKeys = const["0", "1", "else"];
 
-    const FlutterTranslateGen();
+     FlutterTranslateGen();
 
     @override
     Future<String> generateForAnnotatedElement(Element element, ConstantReader annotation, BuildStep buildStep) async
     {
+        final YamlMap properties = loadYaml(File('pubspec.yaml').readAsStringSync());
+        if (properties.containsKey('flutter_translate')) {
+            final flutterTranslateProperties = properties['flutter_translate'];
+            if (flutterTranslateProperties.containsKey('packagesName')) {
+                prefix = flutterTranslateProperties['packagesName'];
+            }
+        }
         validateClass(element);
 
         final options = parseOptions(annotation);
@@ -73,7 +83,7 @@ class FlutterTranslateGen extends AnnotationGenerator<TranslateKeysOptions>
 
         var translations = List<LocalizedItem>();
 
-        mapping.forEach((id, trans) => translations.add(LocalizedItem(id, trans, getKeyFieldName(id, options))));
+        mapping.forEach((id, trans) => translations.add(LocalizedItem(prefix != null ? "$prefix.$id": id, trans, getKeyFieldName(id, options))));
 
         return translations;
     }
