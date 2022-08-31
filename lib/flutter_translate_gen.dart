@@ -17,10 +17,10 @@ import 'package:source_gen/source_gen.dart';
 
 class FlutterTranslateGen extends AnnotationGenerator<TranslateKeysOptions>
 {
-    String prefix;
+    String? prefix;
     static List<String> reservedKeys = const["0", "1", "else"];
 
-     FlutterTranslateGen();
+    FlutterTranslateGen();
 
     @override
     Future<String> generateForAnnotatedElement(Element element, ConstantReader annotation, BuildStep buildStep) async
