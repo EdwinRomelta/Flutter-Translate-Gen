@@ -51,19 +51,21 @@ class FlutterTranslateGen extends AnnotationGenerator<TranslateKeysOptions>
             throw InvalidGenerationSourceError("Ths JSON format is invalid.");
         }
 
-        final file = Library((lb) => lb..body.addAll([KeysClassGenerator.generateClass(options, translations, className)]));
+        final file = Library((lb) => lb..body.addAll([KeysClassGenerator.generateClass(options, translations, className!)]));
 
-        final DartEmitter emitter = DartEmitter(Allocator());
+        final DartEmitter emitter = DartEmitter(allocator: Allocator.none);
 
         return DartFormatter().format('${file.accept(emitter)}');
     }
 
     TranslateKeysOptions parseOptions(ConstantReader annotation)
     {
+        final caseStyle = enumFromString(CaseStyle.values, annotation.peek("caseStyle")?.revive().accessor) ?? CaseStyle.titleCase;
+
         return TranslateKeysOptions(
-                path: annotation.peek("path")?.stringValue,
-                caseStyle: enumFromString(CaseStyle.values, annotation.peek("caseStyle").revive().accessor),
-                separator: annotation.peek("separator")?.stringValue);
+                path: annotation.peek("path")!.stringValue,
+                caseStyle: caseStyle,
+                separator: annotation.peek("separator")!.stringValue);
     }
 
     Future<List<LocalizedItem>> getKeyMap(BuildStep step, TranslateKeysOptions options) async
@@ -81,7 +83,7 @@ class FlutterTranslateGen extends AnnotationGenerator<TranslateKeysOptions>
             translationMap.forEach((key, value) => (mapping[key] ??= <String>[]).add(value));
         }
 
-        var translations = List<LocalizedItem>();
+        List<LocalizedItem> translations = [];
 
         mapping.forEach((id, trans) => translations.add(LocalizedItem(prefix != null ? "$prefix.$id": id, trans, getKeyFieldName(id, options))));
 
@@ -92,6 +94,7 @@ class FlutterTranslateGen extends AnnotationGenerator<TranslateKeysOptions>
     {
         switch(options.caseStyle)
         {
+            case CaseStyle.camelCase: return Casing.camelCase(key);
             case CaseStyle.titleCase: return Casing.titleCase(key,separator: options.separator);
             case CaseStyle.upperCase: return Casing.upperCase(key,separator: options.separator);
             case CaseStyle.lowerCase: return Casing.lowerCase(key,separator: options.separator);
@@ -99,13 +102,13 @@ class FlutterTranslateGen extends AnnotationGenerator<TranslateKeysOptions>
         }
     }
 
-    Map<String, String> getTranslationMap(Map<String, dynamic> jsonMap, {String parentKey})
+    Map<String, String> getTranslationMap(Map<String, dynamic> jsonMap, {String? parentKey})
     {
         final map = Map<String, String>();
 
         for(var entry in jsonMap.keys)
         {
-            String key;
+            String? key;
 
             if(reservedKeys.contains(entry))
             {
@@ -136,9 +139,9 @@ class FlutterTranslateGen extends AnnotationGenerator<TranslateKeysOptions>
     }
 
 
-    void validateClassName(String className)
+    void validateClassName(String? className)
     {
-        if(!className.startsWith("_\$"))
+        if(className == null || className.isEmpty || !className.startsWith("_\$"))
         {
             throw InvalidGenerationSourceError("The annotated class name (currently '$className') must start with _\$. For example _\$Keys or _\$LocalizationKeys");
         }

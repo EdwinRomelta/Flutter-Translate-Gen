@@ -2,5 +2,6 @@ targets:
   $default:
     sources:
       include:
-        - assets/i18n/**
+        - $package$
+        - assets/i18n/**/*.json
         - lib/**
